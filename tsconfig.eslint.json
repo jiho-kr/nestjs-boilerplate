@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "include": [
+      "src/**/*.ts",
+      "*.ts",
+      "mock/**/*.ts",
+      "scenario/**/*.ts"
+    ],
+    "exclude": [
+      "node_modules",
+      ".eslintrc.js"
+    ]
+  }

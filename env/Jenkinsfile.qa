@@ -1,0 +1,39 @@
+library identifier: 'yanolja-pipeline-library', changelog: false
+
+node {
+    checkout scm
+    def packageJSON = readJSON file: 'package.json'
+    def buildVersion = sh(script: "echo `date +%s`", returnStdout: true).trim()
+    def env = 'qa'
+    def environment = 'qa'
+    def namespace = 'hst'
+    def serviceName = "${packageJSON.name}"
+    def imageName = "${serviceName}-${env}"
+    echo "${serviceName} ${packageJSON.version}"
+    def meta = publishMeta(
+        awsProfile: "${namespace}-dev",
+        yanoljaProfile: "${env}",
+        applicationName: "${serviceName}",
+        environmentName: "${serviceName}-${env}",
+        targetFile: "${serviceName}-${env}.zip",
+        dockerNamespace: "${namespace}",
+        dockerFilePath: './Dockerfile',
+        version: "${buildVersion}"
+    )
+    def metaDocker = [
+        dockerNamespace: "${namespace}",
+        applicationName: "${imageName}",
+        version: "${buildVersion}",
+        applicationPath: "${meta.applicationPath}"
+    ]
+
+    publishAppPipeline meta: meta, {
+        publishDocker meta: metaDocker
+        sh "sed -ie 's/%NAMESPACE%/${namespace}/' ./docker-compose.yml"
+        sh "sed -ie 's/%IMAGE_NAME%/${imageName}/' ./docker-compose.yml"
+        sh "sed -ie 's/%SERVICE_NAME%/${serviceName}/' ./docker-compose.yml"
+        sh "sed -ie 's/%VERSION%/${buildVersion}/' ./docker-compose.yml"
+        sh "sed -ie 's/%ENVIRONMENT%/${environment}/' ./docker-compose.yml"
+        sh "zip -r ${meta.destinationFile} docker-compose.yml .ebextensions/* .platform/*"
+    }
+}

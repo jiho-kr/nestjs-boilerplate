@@ -1,0 +1,27 @@
+library identifier: 'yanolja-pipeline-library', changelog: false
+
+node {
+    checkout scm
+    def packageJSON = readJSON file: 'package.json'
+    def env = 'prod'
+    def environment = 'production'
+    def namespace = 'hst'
+    def serviceName = "${packageJSON.name}"
+    echo "${serviceName} ${packageJSON.version}"
+    def meta = publishMeta(
+        awsProfile: "${namespace}-${env}",
+        yanoljaProfile: "${env}",
+        applicationName: "${serviceName}",
+        environmentName: "${serviceName}-${env}",
+        targetFile: "${packageJSON.name}-${env}.zip"
+    )
+
+    publishAppPipeline meta: meta, {
+        sh "sed -ie 's/%NAMESPACE%/${namespace}/' ./docker-compose.yml"
+        sh "sed -ie 's/%IMAGE_NAME%/${serviceName}/' ./docker-compose.yml"
+        sh "sed -ie 's/%SERVICE_NAME%/${serviceName}/' ./docker-compose.yml"
+        sh "sed -ie 's/%VERSION%/${packageJSON.version}/' ./docker-compose.yml"
+        sh "sed -ie 's/%ENVIRONMENT%/${environment}/' ./docker-compose.yml"
+        sh "zip -r ${meta.destinationFile} docker-compose.yml .ebextensions/* .platform/*"
+    }
+}
