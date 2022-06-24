@@ -23,6 +23,7 @@ import { version } from '../package.json';
 import { LogType } from './constant/log-types';
 import { SentryInterceptor } from './interceptor/sentry.interceptor';
 import { EnvironmentService } from './module/environment/environment.service';
+import { MyLogger } from './module/logger/my-logger.service';
 import { MainModule } from './module/main.module';
 import { setupSwagger } from './setup-swagger';
 
@@ -30,7 +31,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(
     MainModule,
     new ExpressAdapter(),
-    { cors: true },
+    { cors: true, logger: new MyLogger() },
   );
 
   const environmentService: EnvironmentService =

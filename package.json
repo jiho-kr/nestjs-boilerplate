@@ -38,6 +38,7 @@
     "aws-sdk": "^2.1061.0",
     "class-transformer": "^0.4.0",
     "class-validator": "^0.13.1",
+    "cls-rtracer": "^2.6.0",
     "commitlint-plugin-function-rules": "^1.7.1",
     "cookie-parser": "^1.4.5",
     "csurf": "^1.11.0",
