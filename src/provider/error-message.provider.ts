@@ -1,10 +1,11 @@
-import type { UnauthorizedException } from '@nestjs/common';
+import type { ConflictException, UnauthorizedException, ValidationError } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/minimal';
 import { Severity } from '@sentry/node';
 import type { AxiosError } from 'axios';
 import type { Request } from 'express';
 import _ from 'lodash';
+import { inspect } from 'util';
 
 interface IAxiosErrorExtra {
   message: string;
@@ -122,6 +123,51 @@ export class ErrorMessageProvider {
       scope.setExtra('option', option);
       scope.setLevel(Severity.Warning);
 
+      Sentry.captureException(error);
+    });
+  }
+
+  static awsSqsException(
+    conflictException: ConflictException,
+    sqsMessage: void | AWS.SQS.Message | AWS.SQS.Message[],
+    option?: Record<string, unknown>,
+  ): void {
+    Logger.warn(sqsMessage, 'Detect the error and let SQS reprocess it');
+    Sentry.withScope((scope) => {
+      scope.setLevel(Severity.Warning);
+      scope.setExtra('service', 'Aws SQS');
+      scope.setExtra(
+        'SQSMessage',
+        inspect(sqsMessage, {
+          breakLength: Number.POSITIVE_INFINITY,
+        }),
+      );
+      scope.setExtra('option', option);
+      Sentry.captureException(conflictException);
+    });
+  }
+
+  static sqsValidationException(
+    error: Error,
+    sqsMessage: unknown,
+    validationErrors: ValidationError[],
+  ): void {
+    Logger.warn(sqsMessage, validationErrors, 'sqsValidationException');
+    Sentry.withScope((scope) => {
+      scope.setLevel(Severity.Warning);
+      scope.setExtra('service', 'Aws SQS');
+      scope.setExtra(
+        'SQSMessage',
+        inspect(sqsMessage, {
+          breakLength: Number.POSITIVE_INFINITY,
+        }),
+      );
+      scope.setExtra(
+        'ValidationError',
+        validationErrors.map((e) =>
+          inspect(e, { breakLength: Number.POSITIVE_INFINITY }),
+        ),
+      );
       Sentry.captureException(error);
     });
   }
